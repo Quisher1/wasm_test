@@ -1,2 +1,0 @@
-/emsdk/upstream/emscripten/emar qc libcore_sdk.a CMakeFiles/core_sdk.dir/processing.cpp.o
-/emsdk/upstream/emscripten/emranlib libcore_sdk.a

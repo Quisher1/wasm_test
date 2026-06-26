@@ -1,92 +1,71 @@
 console.log("main.js loaded");
 
-const img = document.getElementById("img");
+const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let wasmReady = false;
-let imageReady = false;
+let cameraReady = false;
 
-let imageData = null;
-
-function tryRun()
-{
-    if (!wasmReady || !imageReady)
-        return;
-
-    console.log("running C++");
-
-    const data = imageData.data;
-
-    const ptr = Module._malloc(data.length);
-
-    Module.HEAPU8.set(data, ptr);
-
-    Module._process(
-        ptr,
-        canvas.width,
-        canvas.height
-    );
-
-    const result =
-        Module.HEAPU8.subarray(
-            ptr,
-            ptr + data.length
-        );
-
-    imageData.data.set(result);
-
-    ctx.putImageData(imageData, 0, 0);
-
-    Module._free(ptr);
-
-    console.log("processing finished");
-}
-
-// WASM init (ONLY ONCE)
+// WASM initialization
 Module.onRuntimeInitialized = () =>
 {
-    console.log("wasm ready");
+    console.log("WASM ready");
     wasmReady = true;
-    //tryRun();
-    loop();
+
+    if (cameraReady)
+        requestAnimationFrame(loop);
 };
 
-// IMAGE load
-function processImage()
+// Start camera
+async function startCamera()
 {
-    console.log("image loaded");
+    try
+    {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false
+        });
 
-    canvas.width = img.width;
-    canvas.height = img.height;
+        video.srcObject = stream;
 
-    ctx.drawImage(img, 0, 0);
+        video.onloadedmetadata = () =>
+        {
+            video.play();
 
-    imageData = ctx.getImageData(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-    imageReady = true;
+            cameraReady = true;
 
-    tryRun();
+            console.log(
+                `Camera ready: ${canvas.width} x ${canvas.height}`
+            );
+
+            if (wasmReady)
+                requestAnimationFrame(loop);
+        };
+    }
+    catch (err)
+    {
+        console.error("Cannot access camera:", err);
+    }
 }
 
-if (img.complete)
-{
-    processImage();
-}
-else
-{
-    img.onload = processImage;
-}
-
-
+startCamera();
 
 function loop()
 {
+    // Draw current camera frame
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    // Read pixels
     const imageData = ctx.getImageData(
         0,
         0,
@@ -96,24 +75,28 @@ function loop()
 
     const data = imageData.data;
 
+    // Allocate WASM memory
     const ptr = Module._malloc(data.length);
 
+    // Copy image to WASM
     Module.HEAPU8.set(data, ptr);
 
+    // Process image
     Module._process(
         ptr,
         canvas.width,
         canvas.height
     );
 
-    const result =
-        Module.HEAPU8.subarray(
-            ptr,
-            ptr + data.length
-        );
+    // Copy processed image back
+    const result = Module.HEAPU8.subarray(
+        ptr,
+        ptr + data.length
+    );
 
     imageData.data.set(result);
 
+    // Display processed image
     ctx.putImageData(imageData, 0, 0);
 
     Module._free(ptr);

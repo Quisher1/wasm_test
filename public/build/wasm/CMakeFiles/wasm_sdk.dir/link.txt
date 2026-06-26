@@ -1,1 +1,0 @@
-/emsdk/upstream/emscripten/em++ -sWASM=1 "-sEXPORTED_FUNCTIONS=['_process','_malloc','_free']" "-sEXPORTED_RUNTIME_METHODS=['HEAPU8']" CMakeFiles/wasm_sdk.dir/bindings.cpp.o -o wasm_sdk.js  ../src/libcore_sdk.a 
