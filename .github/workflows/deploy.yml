@@ -1,41 +1,51 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# 1. Добавляем права, чтобы GitHub Actions мог управлять деплоем Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Разрешаем только один активный деплой одновременно
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    # Добавляем окружение для отслеживания деплоя в интерфейсе GitHub
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Checks-out your repository
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+      # Здесь вы можете оставить свои тесты или другие скрипты, если нужно:
       - name: Run a one-line script
-        run: echo Hello, world!
+        run: echo "Starting deployment from public folder..."
 
+      # 2. Шаг настройки Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      # 3. Архивируем и загружаем именно папку 'public'
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './public'
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      # 4. Публикуем сайт на серверах GitHub
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
