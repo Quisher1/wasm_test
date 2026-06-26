@@ -48,7 +48,7 @@ Module.onRuntimeInitialized = () =>
 {
     console.log("wasm ready");
     wasmReady = true;
-    // tryRun();
+    //tryRun();
     loop();
 };
 
@@ -74,7 +74,6 @@ function processImage()
     tryRun();
 }
 
-// IMPORTANT: avoid double handler confusion
 if (img.complete)
 {
     processImage();
