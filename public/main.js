@@ -24,46 +24,55 @@ Module.onRuntimeInitialized = () =>
 // =============================
 async function startCamera()
 {
-    try
+    // Ask permission first
+    await navigator.mediaDevices.getUserMedia({
+        video: true
+    });
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    const cameras = devices.filter(
+        d => d.kind === "videoinput"
+    );
+
+    console.log(cameras);
+
+    let camera = cameras.find(d =>
     {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video:
-            {
-                facingMode:
-                {
-                    ideal: "environment"
-                }
-            },
-            audio: false
-        });
+        const label = d.label.toLowerCase();
 
-        video.srcObject = stream;
+        return label.includes("back") ||
+               label.includes("rear") ||
+               label.includes("environment");
+    });
 
-        video.onloadedmetadata = () =>
+    if (!camera)
+        camera = cameras[cameras.length - 1];
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video:
         {
-            video.play();
+            deviceId:
+            {
+                exact: camera.deviceId
+            }
+        }
+    });
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+    video.srcObject = stream;
 
-            console.log(
-                "Camera resolution:",
-                canvas.width,
-                "x",
-                canvas.height
-            );
-
-            cameraReady = true;
-
-            if (wasmReady)
-                requestAnimationFrame(loop);
-        };
-    }
-    catch (err)
+    video.onloadedmetadata = () =>
     {
-        console.error(err);
-        alert("Cannot access camera.");
-    }
+        video.play();
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        cameraReady = true;
+
+        if (wasmReady)
+            requestAnimationFrame(loop);
+    };
 }
 
 startCamera();
