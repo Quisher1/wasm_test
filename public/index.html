@@ -1,16 +1,49 @@
-<!DOCTYPE html>
-<html lang="ru">
+<!-- <!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pages Тест</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <title>WASM TEST</title>
 </head>
+
 <body>
-    <div class="card">
-        <h1>🎉 Всё работает!</h1>
-        <p>Ваша архитектура с папкой <strong>public</strong> успешно развернута на GitHub Pages.</p>
-        <div class="badge">Статус: Успешно</div>
-    </div>
+
+<h1>WASM TEST</h1>
+
+<video
+    id="video"
+    autoplay
+    playsinline
+    muted
+    style="max-width: 640px;"
+></video>
+
+<br>
+
+<canvas
+    id="canvas"
+    style="border:1px solid black;"
+></canvas>
+
+<script src="build/wasm/wasm_sdk.js"></script>
+<script src="main.js"></script>
+
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>WASM TEST</h1>
+
+<img id="img" src="image.png" hidden>
+
+<canvas id="canvas"></canvas>
+
+<script src="build/wasm/wasm_sdk.js"></script>
+<script src="main.js"></script>
+
 </body>
 </html>
