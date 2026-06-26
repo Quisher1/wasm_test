@@ -7,9 +7,9 @@ const ctx = canvas.getContext("2d");
 let wasmReady = false;
 let cameraReady = false;
 
-// =============================
-// Initialize WASM
-// =============================
+// =========================
+// WASM
+// =========================
 Module.onRuntimeInitialized = () =>
 {
     console.log("WASM ready");
@@ -19,70 +19,107 @@ Module.onRuntimeInitialized = () =>
         requestAnimationFrame(loop);
 };
 
-// =============================
-// Start Back Camera
-// =============================
+// =========================
+// Camera
+// =========================
 async function startCamera()
 {
-    // Ask permission first
-    await navigator.mediaDevices.getUserMedia({
-        video: true
-    });
-
-    const devices = await navigator.mediaDevices.enumerateDevices();
-
-    const cameras = devices.filter(
-        d => d.kind === "videoinput"
-    );
-
-    console.log(cameras);
-
-    let camera = cameras.find(d =>
+    try
     {
-        const label = d.label.toLowerCase();
+        // Get permission
+        const tempStream = await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
 
-        return label.includes("back") ||
-               label.includes("rear") ||
-               label.includes("environment");
-    });
+        // Enumerate devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
 
-    if (!camera)
-        camera = cameras[cameras.length - 1];
+        // Stop temporary stream
+        tempStream.getTracks().forEach(track => track.stop());
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video:
+        const cameras = devices.filter(
+            d => d.kind === "videoinput"
+        );
+
+        console.table(cameras);
+
+        let rearCamera = cameras.find(c =>
         {
-            deviceId:
-            {
-                exact: camera.deviceId
-            }
+            const label = c.label.toLowerCase();
+
+            return label.includes("back") ||
+                   label.includes("rear") ||
+                   label.includes("environment");
+        });
+
+        let stream;
+
+        if (rearCamera)
+        {
+            console.log("Using:", rearCamera.label);
+
+            stream = await navigator.mediaDevices.getUserMedia({
+                video:
+                {
+                    deviceId:
+                    {
+                        exact: rearCamera.deviceId
+                    }
+                },
+                audio: false
+            });
         }
-    });
+        else
+        {
+            console.log("Rear camera label not found. Trying facingMode.");
 
-    video.srcObject = stream;
+            stream = await navigator.mediaDevices.getUserMedia({
+                video:
+                {
+                    facingMode:
+                    {
+                        ideal: "environment"
+                    }
+                },
+                audio: false
+            });
+        }
 
-    video.onloadedmetadata = () =>
+        video.srcObject = stream;
+
+        video.onloadedmetadata = () =>
+        {
+            video.play();
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            cameraReady = true;
+
+            console.log(
+                "Resolution:",
+                canvas.width,
+                "x",
+                canvas.height
+            );
+
+            if (wasmReady)
+                requestAnimationFrame(loop);
+        };
+    }
+    catch (e)
     {
-        video.play();
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        cameraReady = true;
-
-        if (wasmReady)
-            requestAnimationFrame(loop);
-    };
+        console.error(e);
+    }
 }
 
 startCamera();
 
-// =============================
-// Processing Loop
-// =============================
+// =========================
+// WASM Loop
+// =========================
 function loop()
 {
-    // Draw current frame to canvas
     ctx.drawImage(
         video,
         0,
@@ -91,7 +128,6 @@ function loop()
         canvas.height
     );
 
-    // Read pixels
     const imageData = ctx.getImageData(
         0,
         0,
@@ -99,32 +135,25 @@ function loop()
         canvas.height
     );
 
-    const data = imageData.data;
+    const ptr = Module._malloc(imageData.data.length);
 
-    // Allocate WASM memory
-    const ptr = Module._malloc(data.length);
+    Module.HEAPU8.set(imageData.data, ptr);
 
-    // Copy pixels into WASM
-    Module.HEAPU8.set(data, ptr);
-
-    // Call your C++ function
     Module._process(
         ptr,
         canvas.width,
         canvas.height
     );
 
-    // Copy processed image back
     imageData.data.set(
         Module.HEAPU8.subarray(
             ptr,
-            ptr + data.length
+            ptr + imageData.data.length
         )
     );
 
     Module._free(ptr);
 
-    // Display result
     ctx.putImageData(imageData, 0, 0);
 
     requestAnimationFrame(loop);
