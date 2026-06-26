@@ -31,21 +31,18 @@ jobs:
       - name: Checks-out your repository
         uses: actions/checkout@v4
 
-      # Здесь вы можете оставить свои тесты или другие скрипты, если нужно:
-      - name: Run a one-line script
-        run: echo "Starting deployment from public folder..."
-
       # 2. Шаг настройки Pages
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
-      # 3. Архивируем и загружаем именно папку 'public'
+      # 3. Загружаем содержимое папки public как КОРЕНЬ сайта
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './public'
+          # Указываем путь именно к папке. Точка в начале важна.
+          path: './public/' 
 
-      # 4. Публикуем сайт на серверах GitHub
+      # 4. Публикуем
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
